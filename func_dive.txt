@@ -1,175 +1,139 @@
-#funcao trace
-clear
-
-
-
-#funcao VERIFICAFILAS 
-
-
+Function mudarResolucao { 
 
  
-$lista_filas5k = @("FILA1.MQ","FILA2.MQ","FILA3.MQ","FILA4.MQ","FILA5.MQ","FILA6.MQ","FILA7.MQ","FILA8.MQ")
-$lista_servidores_restart_iccd = @("10.10.10.2","10.10.10.2","10.10.10.3","10.10.10.4","10.10.10.5","10.10.10.6","10.10.10.7","10.10.10.8")
+param ( 
+[Parameter(Mandatory=$true)] 
+[int]$Horizontal, 
 
-#retorna o tamanho da fila VERIFICAFILAS
+[Parameter(Mandatory=$true)] 
+[int]$Vertical 
+) 
 
-$tamanho_atual_fila = 5165 #tamanho_fila_ CHAMA FUNCAO
-$nome_da_fila = "FILA4.MQ"
+$pinvokeCode = @" 
 
-if ( ($tamanho_atual_fila -gt 5000 ) -and ($lista_filas5k -contains $nome_da_fila))
-{
-    foreach ( $server in $lista_servidores_restart_iccd){
-        write-host "fazendo restart no servidor $server"
-        
-    }
-    write-host "da um SLEEP AQUI de 2 MIN"
-    $tamanho_atual_fila = 2000 * 10
-    if ($tamanho_atual_fila -lt 5000){
-        write-host "SUCESSOOOOOOOOOOOOOO  FILA FLUINDO FOI FEITO O RESTART DO ICCD_QUEU_MANAGER"
-    }
-    else{
-        write-host "FALHOU TAMANHO DA FILA TA GRANDE $tamanho_atual_fila RESTART DO ICCD_QUEU_MANAGER E NAO DIMINUIU A FILA"    
-        }
-}
-else{
-    write-host "DAR UM SLEEP FILA $nome_da_fila Não se encontra pra dar restart no Queue -event genetor "
-    write-host "fazendo um SLEEP"
-    $tamanho_atual_fila = 2000 * 1
-        if ($tamanho_atual_fila -lt 5000){
-        write-host "SUCESSOOOOOOOOOOOOOO FILA FLUINDO  SEM FAZER O RESTART , USADO UM SLEEP DE 2 MIN"
-    }
-    else{
-        write-host "FALHOU TAMANHO DA FILA TA GRANDE $tamanho_atual_fila "    
-        }
+using System; 
+using System.Runtime.InteropServices; 
 
-}
+namespace Resolution 
+{ 
 
-
-
-___________________________________________________________________________________________________________________________________________________________________
-
-function startStopServicos($hostname,$nome_servico,$opcao){
-       #logar na maquina 10.59.100.145
-    write-host "LOGANDO NA MAQUINA $hostname "
-
-    Switch ( $opcao )
-    {
-        "start" {Start-Service -Name $nome_servico ; Set-Service -Name $nome_servico -StartupType Manual }
-        "restart" {Restart-Service -Name $nome_servico}
-        "stop" {Stop-Service -Name $nome_servico; Set-Service -Name $nome_servico -StartupType Manual}
-            
-    }
-  
-    $resultado = Get-Service -Name $nome_servico 
-    return $resultado
-    
-
-}
-$tamanho_fila_alerta = 5165
-$tamanho_atual_fila = 5165 #tamanho_fila_ CHAMA FUNCAO
-#start do cleaner UCHANNELSQUEUECLEANER
-
-startStopServicos "SOWT021CTO" "XblGameSave" "start" 
-
-write-host "STARTOU O CLEANER  AGORA RESTART NOS WATCHERS SLEEP DE 60 seg `n --------------------------"
-#SLEEP 60
-$lista_servidores  = @("SOWT020CTO","SOWT021CTO","SOWT022CTO","SOWT023CTO","SOWT024CTO")
- 
-write-host "RESTART NOS WATCHERS  `n --------------------------"
-
-foreach ($x_servidor in $lista_servidores ){
-    $status_watchers = startStopServicos $x_servidor ("XboxGipSvc","XboxNetApiSvc") "restart"  
-    $lista_status_watchers += @($x_servidor,$status_watchers.Status,$status_watchers.StartType)    
-    }
-
-#verificarFila
-#SLEEP 60
-
-$tamanho_atual_fila = 5165 #tamanho_fila_ CHAMA FUNCAO
-if ($tamanho_atual_fila -ge $tamanho_fila_alerta){
-    #ligar o cleaner da SOWT022CTO
-    $status_cleaner = startStopServicos "SOWT022CTO"  "XblGameSave" "stop"  #stop no cleaner e tambem setar como manual
-    #SLEEP 120
-    #verifica fila novamente
-   
-}
-
-#set cleaner stop em todos os servidores
-foreach ($x_servidor  in $lista_servidores ){
-    $status_cleaner = startStopServicos $x_servidor  "XblGameSave" "stop"  #stop no cleaner e tambem setar como manual
-    $lista_status_cleaner += @($x_servidor,$status_cleaner.Status,$status_cleaner.StartType) 
-}
-
- if($tamanho_fila_atual -lt $tamanho_fila_alerta){
-        write-host "SUCESSO"
-        
-        }
-        else
-        {
-        write-host "FALHA"
-        }
-        
-        
-        ______________________________________________________________________________________________________________________________________
-        $ritm = "RITM0247968"
-#RITM0241654 
-
-function resultadoMotor ($flag){
-    switch ($flag){
-    1 {$global:status="OK";$global:categoria="SUCESSO"}
-    2 {$global:status="NOK";$global:categoria="REGRA"}
-    3 {$global:status="NOK";$global:categoria="FALHA"}
-    4 {$global:status="NOK";$global:categoria="DIRECIONAR"} 
-    5 {$global:status="NOK";$global:categoria="INFO"}
-    6 {$global:status="NOK";$global:categoria="SCRIPT"}
-    }
-}
+    [StructLayout(LayoutKind.Sequential)] 
+    public struct DEVMODE1 
+    { 
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] 
+        public string dmDeviceName; 
+        public short dmSpecVersion; 
+        public short dmDriverVersion; 
+        public short dmSize; 
+        public short dmDriverExtra; 
+        public int dmFields; 
+        public short dmOrientation; 
+        public short dmPaperSize; 
+        public short dmPaperLength; 
+        public short dmPaperWidth; 
+        public short dmScale; 
+        public short dmCopies; 
+        public short dmDefaultSource; 
+        public short dmPrintQuality; 
+        public short dmColor; 
+        public short dmDuplex; 
+        public short dmYResolution; 
+        public short dmTTOption; 
+        public short dmCollate; 
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] 
+        public string dmFormName; 
+        public short dmLogPixels; 
+        public short dmBitsPerPel; 
+        public int dmPelsWidth; 
+        public int dmPelsHeight; 
+        public int dmDisplayFlags; 
+        public int dmDisplayFrequency; 
+        public int dmICMMethod; 
+        public int dmICMIntent; 
+        public int dmMediaType; 
+        public int dmDitherType; 
+        public int dmReserved1; 
+        public int dmReserved2; 
+        public int dmPanningWidth; 
+        public int dmPanningHeight; 
+    }; 
 
 
-function checarRitm($num_ritm){
- 
-    $dev_restore = [string]((Get-Content C:\Users\leo-c\teste_get_item\*  ) -match $num_ritm) 
- 
-   
-    if($dev_restore){
-   
-        $saida = New-Object PSObject -Property  @{
-            StringTxt = $dev_restore.Split('_')[0]
-            CodStatus = $dev_restore.Split('_')[1]
+
+    class User_32 
+    { 
+        [DllImport("user32.dll")] 
+        public static extern int EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE1 devMode); 
+        [DllImport("user32.dll")] 
+        public static extern int ChangeDisplaySettings(ref DEVMODE1 devMode, int flags); 
+        public const int ENUM_CURRENT_SETTINGS = -1; 
+        public const int CDS_UPDATEREGISTRY = 0x01; 
+        public const int CDS_TEST = 0x02; 
+        public const int DISP_CHANGE_SUCCESSFUL = 0; 
+        public const int DISP_CHANGE_RESTART = 1; 
+        public const int DISP_CHANGE_FAILED = -1; 
+    } 
+
+
+
+    public class PrmaryScreenResolution 
+    { 
+        static public string ChangeResolution(int horizontal, int vertical) 
+        { 
+
+            DEVMODE1 dm = GetDevMode1(); 
+
+            if (0 != User_32.EnumDisplaySettings(null, User_32.ENUM_CURRENT_SETTINGS, ref dm)) 
+            { 
+
+                dm.dmPelsWidth = horizontal; 
+                dm.dmPelsHeight = vertical; 
+
+                int iRet = User_32.ChangeDisplaySettings(ref dm, User_32.CDS_TEST); 
+
+                if (iRet == User_32.DISP_CHANGE_FAILED) 
+                { 
+                    return "Unable To Process Your Request. Sorry For This Inconvenience."; 
+                } 
+                else 
+                { 
+                    iRet = User_32.ChangeDisplaySettings(ref dm, User_32.CDS_UPDATEREGISTRY); 
+                    switch (iRet) 
+                    { 
+                        case User_32.DISP_CHANGE_SUCCESSFUL: 
+                            { 
+                                return "SUCESSO"; 
+                            } 
+                        default: 
+                            { 
+                                return "FALHA"; 
+                            } 
+                    } 
+                } 
             } 
-        
-        return $saida      
-    }
+            else 
+            { 
+                return "FALHA"; 
+            } 
+        } 
 
-    return $false
-}
-try{
-    $verificacao = checarRitm $ritm
-     
+        private static DEVMODE1 GetDevMode1() 
+        { 
+            DEVMODE1 dm = new DEVMODE1(); 
+            dm.dmDeviceName = new String(new char[32]); 
+            dm.dmFormName = new String(new char[32]); 
+            dm.dmSize = (short)Marshal.SizeOf(dm); 
+            return dm; 
+        } 
+    } 
+} 
 
-    if ( $verificacao ){
-        switch ($verificacao.CodStatus){
-            "ok"                {resultadoMotor 1 ; $mensagem = "STATUS DA RITM : [$ritm] [ok]" ; $trace ="LALAL ; " }
-            "nok"               {resultadoMotor 2 ;  $mensagem = "STATUS DA RITM : [$ritm] = [nok]" ; $trace ="LALAL"  }
-            "incorreta"         {resultadoMotor 2 ;  $mensagem = "STATUS DA RITM : [$ritm] = [incorreta] " ; $trace ="LALAL" }
-            "nobkp"             {resultadoMotor 2 ;  $mensagem = "STATUS DA RITM : [$ritm] = [nobkp]" ; $trace ="LALAL" }
-            "Data"              {resultadoMotor 2 ;  $mensagem = "STATUS DA RITM : [$ritm] = [Data]" ; $trace ="LALAL"  }
-            "noespaco"          {resultadoMotor 2 ;  $mensagem = "STATUS DA RITM : [$ritm] = [noespaco]" ; $trace ="LALAL"  }
+"@ 
 
-        }
- 
- 
-    }
-    else{
-    resultadoMotor 3
-    $mensagem = " RITM  [$ritm] NÃO LOCALIZADA NOS ARQUIVOS ---------------------------------------------------- " 
-    $trace ="LALAL" 
-    }
-}
-catch{
-    resultadoMotor 6
-    $mensagem = " DEYU RUIM +++++ " 
-    $trace ="LALAL" 
-    }
+Add-Type $pinvokeCode -ErrorAction SilentlyContinue 
+[Resolution.PrmaryScreenResolution]::ChangeResolution($horizontal,$vertical) 
+} 
 
-write-host "$status;$categoria;$mensagem;$trace"
+#$resultado = mudarResolucao -Horizontal 800 -Vertical 600 
+$resultado = mudarResolucao -Horizontal 1600 -Vertical 1200 
+write-host "$resultado"
